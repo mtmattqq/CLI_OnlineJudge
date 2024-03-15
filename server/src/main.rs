@@ -1,4 +1,5 @@
 use server::ThreadPool;
+// use std::arch::x86_64::_mm_bitshuffle_epi64_mask;
 use std::fs;
 use std::io::prelude::*;
 use std::net::TcpListener;
@@ -10,7 +11,7 @@ fn main() {
     let listener = TcpListener::bind("127.0.0.1:8787").unwrap();
     let pool = ThreadPool::new(4);
 
-    for stream in listener.incoming().take(2) {
+    for stream in listener.incoming() {
         let stream = stream.unwrap();
 
         pool.execute(|| {
@@ -22,30 +23,16 @@ fn main() {
 }
 
 fn handle_connection(mut stream: TcpStream) {
-    let mut buffer = [0; 1024];
-    stream.read(&mut buffer).unwrap();
+    let mut buffer:Vec<u8> = Vec::new();
+    stream.read_to_end(&mut buffer).unwrap();
 
-    let get = b"GET / HTTP/1.1\r\n";
-    let sleep = b"GET /sleep HTTP/1.1\r\n";
+    let buffer = String::from_utf8(buffer).unwrap();
+    println!("{}", buffer);
 
-    let (status_line, filename) = if buffer.starts_with(get) {
-        ("HTTP/1.1 200 OK", "hello.html")
-    } else if buffer.starts_with(sleep) {
-        thread::sleep(Duration::from_secs(5));
-        ("HTTP/1.1 200 OK", "hello.html")
-    } else {
-        ("HTTP/1.1 404 NOT FOUND", "404.html")
-    };
+    let filename = "output.info";
 
     let contents = fs::read_to_string(filename).unwrap();
 
-    let response = format!(
-        "{}\r\nContent-Length: {}\r\n\r\n{}",
-        status_line,
-        contents.len(),
-        contents
-    );
-
-    stream.write_all(response.as_bytes()).unwrap();
+    stream.write_all(contents.as_bytes()).unwrap();
     stream.flush().unwrap();
 }
