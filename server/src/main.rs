@@ -1,11 +1,10 @@
 use server::ThreadPool;
-// use std::arch::x86_64::_mm_bitshuffle_epi64_mask;
 use std::fs;
 use std::io::prelude::*;
 use std::net::TcpListener;
 use std::net::TcpStream;
-use std::thread;
-use std::time::Duration;
+use rsa::{Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
+use rand::thread_rng;
 
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:8787").unwrap();
@@ -18,6 +17,19 @@ fn main() {
             handle_connection(stream);
         });
     }
+
+    let mut rng = thread_rng();
+    let bits = 2048;
+    let priv_key = RsaPrivateKey::new(&mut rng, bits).expect("Fail to Create Key");
+    let pub_key = RsaPublicKey::from(&priv_key);
+
+    let data = b"hello world";
+
+    let enc_data = pub_key.encrypt(&mut rng, Pkcs1v15Encrypt, &data[..]).expect("Encrypt Failed");
+    assert_ne!(&data[..], &enc_data[..]);
+
+    let dec_data = priv_key.decrypt(Pkcs1v15Encrypt, &enc_data).expect("Decrypt Failed");
+    assert_eq!(&data[..], &dec_data[..]);
 
     println!("Shutting down.");
 }
