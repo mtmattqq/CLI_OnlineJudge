@@ -1,0 +1,3 @@
+TestCases: 10
+TimeLimit(ms): 1000
+ProblemID: Default
