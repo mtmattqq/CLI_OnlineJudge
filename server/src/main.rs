@@ -53,10 +53,21 @@ fn handle_connection(mut stream: TcpStream) {
     }
     println!("Problem {}", problem_id);
 
-    let mut buffer:Vec<u8> = Vec::new();
-    stream.read_to_end(&mut buffer).unwrap();
+    let mut buffer:[u8; 256] = [0; 256];    
+    let mut dec_data: Vec<u8> = Vec::new();
 
-    let dec_data = priv_key.decrypt(Pkcs1v15Encrypt, &buffer).expect("Decrypt Failed");
+    loop {
+        match stream.read_exact(&mut buffer) {
+            Ok(_) => {
+                let block = priv_key
+                    .decrypt(Pkcs1v15Encrypt, &buffer)
+                    .expect("Decrypt Failed");
+                dec_data.extend_from_slice(&block);
+            },
+            Err(_) => break,
+        };
+    }
+    
     let dec_data = String::from_utf8(dec_data).unwrap();
 
     let user_code_path = problem_list.lines().nth((problem_id - 1).try_into().unwrap()).unwrap();

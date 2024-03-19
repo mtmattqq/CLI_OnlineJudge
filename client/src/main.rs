@@ -1,8 +1,5 @@
 use std::{
-    fs,
-    net::TcpStream,
-    io::{Read, Write},
-    env::args
+    cmp::min, env::args, fs, io::{Read, Write}, net::TcpStream
 };
 use rsa::pkcs1::DecodeRsaPublicKey;
 use rsa::{Pkcs1v15Encrypt, RsaPublicKey};
@@ -54,7 +51,7 @@ fn handle_connect(mut stream: TcpStream, file_name: String) {
         }
     }
 
-    println!("Problem List\n");
+    println!("Problem List");
     let problem_list = String::from_utf8(problem_list.to_vec()).unwrap();
     let mut line_num = 1;
     for line in problem_list.lines() {
@@ -88,10 +85,18 @@ fn handle_connect(mut stream: TcpStream, file_name: String) {
 
     let mut rng = thread_rng();
     let msg = fs::read_to_string(file_name).unwrap();
-    let enc_data = pub_key.encrypt(&mut rng, Pkcs1v15Encrypt, &msg.as_bytes()).expect("Encrypt Failed");
 
-    stream.write_all(&enc_data).unwrap();
+    let unit_length = 64;
+    for i in 0..(msg.len() / unit_length + 1) {
+        let end = min((i + 1) * unit_length, msg.len());
+        let enc_data = pub_key
+            .encrypt(&mut rng, Pkcs1v15Encrypt, msg[(i * unit_length)..end]
+                .as_bytes())
+            .expect("Encrypt Failed");
+        stream.write_all(&enc_data[..]).unwrap();
+    }
     stream.flush().unwrap();
+
     stream.shutdown(std::net::Shutdown::Write).unwrap();
     println!("Sent the code and problem id, awaiting reply...");
 
