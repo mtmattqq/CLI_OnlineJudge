@@ -65,11 +65,12 @@ fn handle_connection(mut stream: TcpStream) {
     path.push_str("/Solve.cpp");
     fs::write(path, dec_data).unwrap();
 
-    let mut run_path = String::from("./problems/");
-    run_path.push_str(user_code_path);
-    run_path.push_str("/Run");
+    let run_path = String::from("bash");
 
-    let output = Command::new(run_path).output().unwrap();
+    let output = Command::new(run_path)
+        .arg("run_usercode.sh")
+        .arg(user_code_path)
+        .output().unwrap();
     let output = output.stdout;
 
     stream.write_all(&output[..]).unwrap();

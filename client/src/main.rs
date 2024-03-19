@@ -49,17 +49,19 @@ fn handle_connect(mut stream: TcpStream, file_name: String) {
     loop {
         stream.read_exact(&mut problem_buf).unwrap();
         problem_list.extend_from_slice(&problem_buf);
-        if String::from_utf8(problem_list.to_vec()).unwrap().contains("END") {
+        if String::from_utf8(problem_list.to_vec()).unwrap().ends_with("END") {
             break;
         }
     }
+
+    println!("Problem List\n");
     let problem_list = String::from_utf8(problem_list.to_vec()).unwrap();
     let mut line_num = 1;
     for line in problem_list.lines() {
         if line == "END" {
             break;
         }
-        println!("{}: {}", line_num, line);
+        println!("    {}: {}", line_num, line);
         line_num += 1;
     }
 
@@ -70,6 +72,10 @@ fn handle_connect(mut stream: TcpStream, file_name: String) {
     let problem_id: u32 = problem_id
         .trim().parse()
         .expect("Problem id should be an integer");
+
+    if problem_id <= 0 || problem_id >= problem_list.len().try_into().unwrap() {
+        println!("Problem id not found");
+    }
 
     println!("Sending problem id to server");
     stream.write_all(&problem_id.to_be_bytes()).unwrap();
