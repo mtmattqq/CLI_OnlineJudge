@@ -117,7 +117,13 @@ fn handle_connection(mut stream: TcpStream) {
     match output {
         Some(out) => {
             let output = out.stdout;
-            stream.write_all(&output[..]).unwrap();
+            match stream.write_all(&output[..]) {
+                Ok(_) => println!("Writing successed"),
+                Err(e) => {
+                    println!("Writing failed {}", e);
+                    fs::write(&path, "Ready").unwrap();
+                },
+            };
             fs::write(&path, "Ready").unwrap();
         },
         None => {
