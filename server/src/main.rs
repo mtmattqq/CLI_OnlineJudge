@@ -71,10 +71,34 @@ fn handle_connection(mut stream: TcpStream) {
     let dec_data = String::from_utf8(dec_data).unwrap();
 
     let user_code_path = problem_list.lines().nth((problem_id - 1).try_into().unwrap()).unwrap();
+    
     let mut path = String::from("./problems/");
     path.push_str(user_code_path);
     path.push_str("/Solve.cpp");
     fs::write(path, dec_data).unwrap();
+
+    let mut path = String::from("./problems/");
+    path.push_str(user_code_path);
+    path.push_str("/Lock.info");
+
+    loop {
+        let lock = fs::read_to_string(&path);
+        match lock {
+            Ok(msg) => {
+                println!("Lock file exist");
+                if msg == "Ready" {
+                    break;
+                }
+            },
+            Err(_) => {
+                fs::write(&path, "Ready").unwrap();
+                break;
+            },
+        }
+        
+    }
+
+    fs::write(&path, "Lock").unwrap();
 
     let run_path = String::from("bash");
 
@@ -83,6 +107,8 @@ fn handle_connection(mut stream: TcpStream) {
         .arg(user_code_path)
         .output().unwrap();
     let output = output.stdout;
+
+    fs::write(&path, "Ready").unwrap();
 
     stream.write_all(&output[..]).unwrap();
     stream.flush().unwrap();
