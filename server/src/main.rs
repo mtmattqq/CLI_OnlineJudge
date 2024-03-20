@@ -102,14 +102,27 @@ fn handle_connection(mut stream: TcpStream) {
 
     let run_path = String::from("bash");
 
-    let output = Command::new(run_path)
+    let output = match Command::new(run_path)
         .arg("run_usercode.sh")
         .arg(user_code_path)
-        .output().unwrap();
-    let output = output.stdout;
+        .output() 
+    {
+        Ok(out) => Some(out),
+        Err(_) => {
+            fs::write(&path, "Ready").unwrap(); 
+            None
+        },
+    };
 
-    fs::write(&path, "Ready").unwrap();
-
-    stream.write_all(&output[..]).unwrap();
+    match output {
+        Some(out) => {
+            let output = out.stdout;
+            stream.write_all(&output[..]).unwrap();
+            fs::write(&path, "Ready").unwrap();
+        },
+        None => {
+            fs::write(&path, "Ready").unwrap();
+        }
+    }
     stream.flush().unwrap();
 }
